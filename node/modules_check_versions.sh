@@ -2,6 +2,7 @@
 
 # Script para listar versões de todos os módulos em node_modules
 # Uso: ./list_versions.sh
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/node/modules_check_versions.sh | sh
 
 echo "📦 LISTANDO VERSÕES DOS MÓDULOS INSTALADOS"
 echo "=========================================="
