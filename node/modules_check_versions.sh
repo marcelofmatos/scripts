@@ -22,8 +22,8 @@ found_versions=0
 get_version() {
     package_json="$1"
     if [ -f "$package_json" ]; then
-        # Extrai a versão usando grep e sed (compatível com sh)
-        version=$(grep '"version"' "$package_json" | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+        # Extrai a versão usando grep e sed (máxima compatibilidade)
+        version=$(grep '"version"' "$package_json" | head -1 | sed 's/.*"version".*:.*"\([^"]*\)".*/\1/')
         echo "$version"
     else
         echo "N/A"
@@ -48,14 +48,21 @@ starts_with_at() {
 
 # Função para verificar se terminal suporta cores
 supports_color() {
-    [ -t 1 ] && [ "${TERM:-}" != "dumb" ]
+    if [ -t 1 ]; then
+        if [ "${TERM}" != "dumb" ] && [ "${TERM}" != "" ]; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 # Percorrer todos os diretórios em node_modules
 if [ -d "node_modules" ]; then
     for module_dir in node_modules/*/; do
         # Verificar se o glob retornou resultados válidos
-        [ -d "$module_dir" ] || continue
+        if [ ! -d "$module_dir" ]; then
+            continue
+        fi
         
         # Remover trailing slash e prefixo node_modules/
         module_name=$(basename "$module_dir")
@@ -69,7 +76,9 @@ if [ -d "node_modules" ]; then
         if starts_with_at "$module_name"; then
             # Processar módulos dentro do escopo
             for scoped_dir in "$module_dir"*/; do
-                [ -d "$scoped_dir" ] || continue
+                if [ ! -d "$scoped_dir" ]; then
+                    continue
+                fi
                 
                 scoped_name=$(basename "$scoped_dir")
                 full_name="$module_name/$scoped_name"
