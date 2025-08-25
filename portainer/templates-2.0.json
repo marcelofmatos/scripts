@@ -1,0 +1,174 @@
+{
+	"version": "2",
+	"templates": [
+		{
+			"type": 2,
+			"title": "Balanceador",
+			"description": "Balanceador com traefik com volume local",
+			"note": "Proxy necessário para atender as requisições nas portas 80 e 443 e repassar aos respectivos serviços. Contém configuração para geração automática de certificados com o LetsEncrypt",
+			"categories": [
+				"balanceador"
+			],
+			"platform": "linux",
+			"logo": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Traefik.logo.png",
+			"repository": {
+				"url": "https://github.com/marcelofmatos/portainer",
+				"stackfile": "balancer/docker-compose.yml"
+			},
+			"env": [{
+				"name": "DOMAIN",
+				"label": "Domínio padrão do ambiente",
+				"description": "Domínio pelo qual o ambiente vai responder. Geralmente utilizado um endereço com wildcard para padronização. Referência: https://doc.traefik.io/traefik/v1.7/user-guide/examples/"
+			},{
+				"name": "ACME_EMAIL",
+				"label": "e-mail para a conta do LetsEncrypt",
+				"description": "e-mail de notificação do LetsEncrypt para avisos sobre os certificados"
+			},{
+				"name": "ADMIN_USER",
+				"label": "Usuário de acesso ao dashboard",
+				"description": "Usuário para acesso à dashboard do traefik",
+				"default": "admin"
+			},{
+				"name": "HASHED_PASSWORD",
+				"label": "Hash da senha de acesso ao dashboard",
+				"description": "Usar hash padrão do htpassword. Senha padrão: traefik",
+				"default": "$apr1$v5twjyu6$9S/gFpIq5IXmdsFCR0zac/"
+			}]
+		},{
+			"type": 2,
+			"title": "Balanceador (Consul)",
+			"description": "Balanceador com traefik usando Consul para consultas distribuídas",
+			"note": "Proxy necessário para atender as requisições nas portas 80 e 443 e repassar aos respectivos serviços. Contém configuração para geração automática de certificados com o LetsEncrypt",
+			"categories": [
+				"balanceador"
+			],
+			"platform": "linux",
+			"logo": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Traefik.logo.png",
+			"repository": {
+				"url": "https://github.com/marcelofmatos/portainer",
+				"stackfile": "balanceador/docker-compose-consul.yml"
+			},
+			"env": [{
+				"name": "DOMAIN",
+				"label": "Domínio padrão do ambiente",
+				"description": "Domínio pelo qual o ambiente vai responder. Geralmente utilizado um endereço com wildcard para padronização. Referência: https://doc.traefik.io/traefik/v1.7/user-guide/examples/"
+			},{
+				"name": "ACME_EMAIL",
+				"label": "e-mail para a conta do LetsEncrypt",
+				"description": "e-mail de notificação do LetsEncrypt para avisos sobre os certificados"
+			},{
+				"name": "ADMIN_USER",
+				"label": "Usuário de acesso ao dashboard",
+				"description": "Usuário para acesso à dashboard do traefik",
+				"default": "admin"
+			},{
+				"name": "HASHED_PASSWORD",
+				"label": "Hash da senha de acesso ao dashboard",
+				"description": "Usar hash padrão do htpassword. Senha padrão: traefik",
+				"default": "$apr1$v5twjyu6$9S/gFpIq5IXmdsFCR0zac/"
+			}]
+		},{
+			"type": 2,
+			"title": "Balanceador (Google Cloud)",
+			"description": "Balanceador com traefik usando consult para consultas distribuídas e armazenando em volumes do Google Cloud",
+			"note": "Proxy necessário para atender as requisições nas portas 80 e 443 e repassar aos respectivos serviços. Contém configuração para geração automática de certificados com o LetsEncrypt",
+			"categories": [
+				"balanceador"
+			],
+			"platform": "linux",
+			"logo": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Traefik.logo.png",
+			"repository": {
+				"url": "https://github.com/marcelofmatos/portainer",
+				"stackfile": "balanceador/docker-compose-consul-gce.yml"
+			},
+			"env": [{
+				"name": "DOMAIN",
+				"label": "Domínio padrão do ambiente",
+				"description": "Domínio pelo qual o ambiente vai responder. Geralmente utilizado um endereço com wildcard para padronização. Referência: https://doc.traefik.io/traefik/v1.7/user-guide/examples/"
+			},{
+				"name": "ACME_EMAIL",
+				"label": "e-mail para a conta do LetsEncrypt",
+				"description": "e-mail de notificação do LetsEncrypt para avisos sobre os certificados"
+			},{
+				"name": "ADMIN_USER",
+				"label": "Usuário de acesso ao dashboard",
+				"description": "Usuário para acesso à dashboard do traefik",
+				"default": "admin"
+			},{
+				"name": "HASHED_PASSWORD",
+				"label": "Hash da senha de acesso ao dashboard",
+				"description": "Usar hash padrão do htpassword. Senha padrão: traefik",
+				"default": "$apr1$v5twjyu6$9S/gFpIq5IXmdsFCR0zac/"
+			}]
+		},{
+			"type": 2,
+			"title": "LigeroSmart Open Source",
+			"description": "LigeroSmart stack com os serviços integrados usando docker-compose v3 (Docker Swarm)",
+			"note": "Stack necessária para rodar todos os serviços do LigeroSmart. Veja mais em <a href='https://docs.ligerosmart.org'>https://docs.ligerosmart.org</a>",
+			"categories": [
+				"ITSM",
+				"ServiceDesk"
+			],
+			"platform": "linux",
+			"logo": "https://ligerosmart.com/wp-content/uploads/2019/07/logo-menor-1.png",
+			"repository": {
+				"url": "https://github.com/LigeroSmart/ligerosmart-stack",
+				"stackfile": "docker-compose-swarm.yml"
+			},
+			"env": [{
+				"name": "WEBSERVER_FQDN",
+				"label": "Endereço FQDN do ambiente",
+				"description": "Endereço pelo qual o ambiente vai responder. Se o LetsEncrypt estiver ativo no traefik, será o endereço do certificado. Não pode ter mais que 64 caracteres"
+			},{
+				"name": "PROJECT_NAME",
+				"label": "Nome do projeto",
+				"description": "Nome do projeto, sem espaços e sem caracteres especiais, para identificar por exemplo os índices dentro do Elasticsearch",
+				"default": "ligerosmart"
+			}]
+		},{
+			"type": 2,
+			"title": "LigeroSmart Automation",
+			"description": "Desenvolvimento de automações integrados com o LigeroSmart e outras aplicações (Docker Swarm)",
+			"note": "Veja mais em <a href='https://docs.ligerosmart.org'>https://docs.ligerosmart.org</a>",
+			"categories": [
+				"Automação",
+				"ServiceDesk"
+			],
+			"platform": "linux",
+			"logo": "https://ligerosmart.com/wp-content/uploads/2019/07/logo-menor-1.png",
+			"repository": {
+				"url": "https://github.com/LigeroSmart/automationt-stack",
+				"stackfile": "docker-compose.yml"
+			},
+			"env": [{
+				"name": "WEBSERVER_FQDN",
+				"label": "Endereço FQDN do ambiente",
+				"description": "Endereço pelo qual o ambiente vai responder. Se o LetsEncrypt estiver ativo no traefik, será o endereço do certificado. Não pode ter mais que 64 caracteres"
+			},{
+				"name": "PROJECT_NAME",
+				"label": "Nome do projeto",
+				"description": "Nome do projeto, sem espaços e sem caracteres especiais, para identificar por exemplo os índices dentro do Elasticsearch",
+				"default": "ligerosmart"
+			}]
+		},{
+			"type": 2,
+			"title": "Ferramentas",
+			"description": "Alguns softwares para manutenção e testes",
+			"note": "Stack com soluções de softwares para manutenção e testes do ambiente como um todo",
+			"categories": [
+				"teste"
+			],
+			"platform": "linux",
+			"logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Circle-icons-tools.svg/512px-Circle-icons-tools.svg.png",
+			"repository": {
+				"url": "https://github.com/LigeroSmart/ligerosmart-stack",
+				"stackfile": "tools/docker-compose.yml"
+			},
+			"env": [{
+				"name": "WEBSERVER_FQDN",
+				"label": "Endereço FQDN do ambiente",
+				"description": "Endereço pelo qual o ambiente vai responder. Se o LetsEncrypt estiver ativo no traefik, será o endereço do certificado"
+			}]
+		}
+	]
+}
