@@ -2,7 +2,7 @@
 #
 # Docker Swarm Mode install
 #
-# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/swarm/worker/install.sh | bash
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/swarm/worker/install.sh | bash
 # 
 
 # commands detection
