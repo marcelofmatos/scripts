@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_and_start_stacks.sh > portainer-stacks-manager.sh
+#
 
 # Configurações iniciais
 source .env
