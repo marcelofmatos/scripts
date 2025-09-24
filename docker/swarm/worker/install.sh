@@ -65,14 +65,29 @@ if [ "$install_docker" ]; then
 fi;
 
 if [ "$install_dockercompose" ]; then
-    python3 -m pip install --upgrade pip
-    pip3 install setuptools
-    pip3 install docker-compose
-
-    # docker-compose link
-    if [ -f /usr/local/bin/docker-compose ]; then
-        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    fi;
+    case "$pkg_mgmt" in
+        apt)
+            apt-get update
+            apt-get install -y --no-install-recommends \
+                docker-compose \
+                python3-setuptools
+        ;;
+        yum)
+            yum install -y \
+                docker-compose \
+                python3-setuptools
+        ;;
+        *)
+            echo "Fallback to pip installation for docker-compose"
+            python3 -m pip install --upgrade pip
+            pip3 install setuptools
+            pip3 install docker-compose
+            # docker-compose link
+            if [ -f /usr/local/bin/docker-compose ]; then
+                ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+            fi;
+        ;;
+    esac
 fi;
 
 ## Kernel config
