@@ -90,11 +90,12 @@ if [ "$install_dockercompose" ]; then
     esac
 fi;
 
-ADVERTISE_INTERFACE=${ADVERTISE_INTERFACE:-`ip -br a | grep -v 127.0 | head -n 1 | cut -f 1 -d " "`}
-ADVERTISE_IP=`ip -br a | grep $ADVERTISE_INTERFACE | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'`
-ADVERTISE_IP=${ADVERTISE_IP:-"server_ip"}
-PORTAINER_USERNAME=${PORTAINER_USERNAME:-"maint"}
-PORTAINER_PASSWORD=${PORTAINER_PASSWORD:-"ac@prtnr"}
+export ADVERTISE_INTERFACE=${ADVERTISE_INTERFACE:-`ip -br a | grep -v 127.0 | head -n 1 | cut -f 1 -d " "`}
+export ADVERTISE_IP=`ip -br a | grep $ADVERTISE_INTERFACE | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'`
+export ADVERTISE_IP=${ADVERTISE_IP:-"server_ip"}
+export PORTAINER_USERNAME=${PORTAINER_USERNAME:-"maint"}
+export PORTAINER_PASSWORD=${PORTAINER_PASSWORD:-"ac@prtnr"}
+export PROXY_NET=${PROXY_NET:-"web"}
 
 echo "Docker Info"
 docker info
@@ -107,8 +108,7 @@ docker swarm init --advertise-addr ${ADVERTISE_INTERFACE}:2377
 docker swarm update --task-history-limit 1
 
 echo "Docker Ingress network"
-docker network create --driver=overlay web
-docker network create --driver=overlay proxy
+docker network create --driver=overlay $PROXY_NET
 
 echo "Docker Volume Manager"
 docker volume create manager 
