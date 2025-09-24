@@ -93,6 +93,7 @@ docker swarm update --task-history-limit 1
 
 echo "Docker Ingress network"
 docker network create --driver=overlay web
+docker network create --driver=overlay proxy
 
 echo "Docker Volume Manager"
 docker volume create manager 
