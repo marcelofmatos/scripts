@@ -97,7 +97,7 @@ export ADVERTISE_IP=`ip -br a | grep $ADVERTISE_INTERFACE | grep -Eo '[0-9]{1,3}
 export ADVERTISE_IP=${ADVERTISE_IP:-"server_ip"}
 export PORTAINER_USERNAME=${PORTAINER_USERNAME:-"maint"}
 export PORTAINER_PASSWORD=${PORTAINER_PASSWORD:-"ac@prtnr"}
-export PROXY_NET=${PROXY_NET:-"proxy"}
+export PROXY_NET=${PROXY_NET:-"web"}
 
 echo "Docker Info"
 docker info
