@@ -1,7 +1,10 @@
 #!/bin/bash
 #
-# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_and_start_stacks.sh > portainer-stacks-manager.sh
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_stacks.sh > portainer-stacks-manager.sh
 #
+
+#set -x 
+set -e
 
 # Configurações iniciais
 source .env
@@ -71,7 +74,22 @@ function start_stack() {
 
   curl -s -X POST \
     -H "Authorization: Bearer $JWT_TOKEN" \
-    "$SERVER_URL/api/stacks/$STACK_ID/start" | jq
+    "$SERVER_URL/api/stacks/$STACK_ID/start?endpointId=$NEW_ENDPOINT_ID" | jq
+}
+
+# Função para parar a stack
+function stop_stack() {
+  local STACK_ID=$1
+
+  if [[ -z "$STACK_ID" ]]; then
+    echo "ID da stack não fornecido."
+    exit 1
+  fi
+
+  curl -s -X POST \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    "$SERVER_URL/api/stacks/$STACK_ID/stop?endpointId=$NEW_ENDPOINT_ID" | jq
+  sleep 4
 }
 
 # Verifica se o Swarm ID foi passado como parâmetro
@@ -87,8 +105,12 @@ get_jwt_token
 if [[ -n "$STACK_ID" ]]; then
   echo "Migrando a stack ID $STACK_ID para o Swarm ID $NEW_SWARM_ID..."
   migrate_stack "$STACK_ID"
-  echo "Iniciando a stack ID $STACK_ID..."
-  start_stack "$STACK_ID"
+  
+  echo "Parando a stack ID $STACK_ID..."
+  stop_stack "$STACK_ID"
+ 
+  #echo "Iniciando a stack ID $STACK_ID..."
+  #start_stack "$STACK_ID"
 else
   echo "Stacks disponíveis:"
   list_stacks
@@ -99,8 +121,11 @@ else
   echo "Migrando a stack ID $STACK_ID para o Swarm ID $NEW_SWARM_ID..."
   migrate_stack "$STACK_ID"
   
-  echo "Iniciando a stack ID $STACK_ID..."
-  start_stack "$STACK_ID"
+  echo "Parando a stack ID $STACK_ID..."
+  stop_stack "$STACK_ID"
+ 
+  #echo "Iniciando a stack ID $STACK_ID..."
+  #start_stack "$STACK_ID"
 fi
 
 echo "Migração e inicialização concluídas."
