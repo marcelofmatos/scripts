@@ -128,5 +128,5 @@ else
   #start_stack "$STACK_ID"
 fi
 
-echo "Migração e inicialização concluídas."
+echo "Migração concluída."
 
