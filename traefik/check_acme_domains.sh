@@ -14,7 +14,7 @@
 # https://github.com/marcelofmatos/scripts
 #
 # Para baixar e executar diretamente:
-# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/check_acme_domains.sh | sh
+# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains.sh | sh
 #
 # Ou clone o repositório para usar localmente:
 # git clone https://github.com/marcelofmatos/scripts.git
