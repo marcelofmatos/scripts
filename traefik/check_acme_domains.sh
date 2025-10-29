@@ -4,7 +4,7 @@
 # Descrição: Detecta se acme.json é do Traefik v1 ou v2 e testa domínios em Certificates com rispettivo case dos campos.
 # Dependências: jq, host (bind-tools)
 #
-# Uso: ./check_acme_domains_compat.sh [--fail-only] [--verbose]
+# Uso: ./check_acme_domains.sh [--fail-only] [--verbose]
 #
 # Para baixar e executar diretamente:
 # curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains.sh | sh
