@@ -1,14 +1,14 @@
 #!/bin/sh
 #
 # Script: check_acme_domains.sh
-# Descrição: Lê o arquivo acme.json do Traefik v2 e testa os domínios em domain.main com o comando host.
+# Descrição: Lê o arquivo acme.json do Traefik v2, detecta a chave raiz customizada e testa os domínios em Certificates[].domain.main com o comando host.
 # Dependências: jq, host (bind-tools)
 #
 # Este script pode ser baixado e usado diretamente do repositório oficial:
 # https://github.com/marcelofmatos/scripts
 #
 # Para baixar e executar diretamente:
-# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains.sh | sh
+# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/check_acme_domains.sh | sh
 #
 # Ou clone o repositório para usar localmente:
 # git clone https://github.com/marcelofmatos/scripts.git
@@ -42,8 +42,14 @@ if [ ! -f "$ACME_FILE" ]; then
   exit 1
 fi
 
-# Ler os domínios no campo domain.main e testar com host
-jq -r '.Certificates // [] | .[] | select(.domain.main != null) | .domain.main' "$ACME_FILE" | while read -r domain; do
+# Detecta a primeira chave de nível superior (ex: myresolver, default, etc)
+ROOT_KEY=$(jq -r 'keys_unsorted[0]' "$ACME_FILE")
+echo "Chave raiz detectada: $ROOT_KEY"
+
+# Ler os domínios em Certificates dentro da chave raiz e testar com host
+jq -r --arg key "$ROOT_KEY" '
+  .[$key].Certificates // [] | .[] | select(.domain.main != null) | .domain.main
+' "$ACME_FILE" | while read -r domain; do
   echo "Testando DNS para $domain"
   if host "$domain"; then
     echo "Domínio $domain resolvido com sucesso."
