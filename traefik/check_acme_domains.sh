@@ -1,13 +1,10 @@
 #!/bin/sh
 #
 # Script: check_acme_domains_compat.sh
-# Descrição: Detecta se acme.json é do Traefik v1 ou v2 e testa domínios em Certificates[].domain.main com host.
+# Descrição: Detecta se acme.json é do Traefik v1 ou v2 e testa domínios em Certificates com rispettivo case dos campos.
 # Dependências: jq, host (bind-tools)
 #
 # Uso: ./check_acme_domains_compat.sh [--fail-only] [--verbose]
-#
-# Para baixar e executar diretamente:
-# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains_compat.sh | sh
 #
 
 check_install() {
@@ -42,8 +39,8 @@ do
   esac
 done
 
-# Detecta se é Traefik v2 (presença de chave raiz personalizada com Certificates)
-ROOT_KEY=$(jq -r 'keys_unsorted | map(select(. != "acme")) | .[0]' "$ACME_FILE" 2>/dev/null)
+# Detecta formato Traefik v2: chave customizada com .Certificates
+ROOT_KEY=$(jq -r 'keys_unsorted | map(select(. != "Certificates")) | .[0]' "$ACME_FILE" 2>/dev/null)
 HAS_CERTS_V2=$(jq -e --arg key "$ROOT_KEY" '.[$key].Certificates? // empty' "$ACME_FILE" >/dev/null 2>&1 && echo yes || echo no)
 
 if [ "$HAS_CERTS_V2" = "yes" ]; then
@@ -51,10 +48,10 @@ if [ "$HAS_CERTS_V2" = "yes" ]; then
   DOMAINS=$(jq -r --arg key "$ROOT_KEY" '
     .[$key].Certificates // [] | .[] | select(.domain.main != null) | .domain.main
   ' "$ACME_FILE")
-elif jq -e '.acme.Certificates?' "$ACME_FILE" >/dev/null 2>&1; then
+elif jq -e '.Certificates?' "$ACME_FILE" >/dev/null 2>&1; then
   echo "Formato Traefik v1 detectado."
   DOMAINS=$(jq -r '
-    .acme.Certificates // [] | .[] | select(.domain.main != null) | .domain.main
+    .Certificates // [] | .[] | select(.Domain.Main != null) | .Domain.Main
   ' "$ACME_FILE")
 else
   echo "Formato de arquivo acme.json não reconhecido."
