@@ -43,7 +43,7 @@ if [ ! -f "$ACME_FILE" ]; then
 fi
 
 # Ler os domínios no campo domain.main e testar com host
-jq -r '.Certificates[].domain.main' "$ACME_FILE" | while read -r domain; do
+jq -r '.Certificates // [] | .[] | select(.domain.main != null) | .domain.main' "$ACME_FILE" | while read -r domain; do
   echo "Testando DNS para $domain"
   if host "$domain"; then
     echo "Domínio $domain resolvido com sucesso."
