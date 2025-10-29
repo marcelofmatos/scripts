@@ -4,6 +4,8 @@
 # Descrição: Lê o arquivo acme.json do Traefik v2, detecta a chave raiz customizada e testa os domínios em Certificates[].domain.main com o comando host.
 # Dependências: jq, host (bind-tools)
 #
+# Uso: ./check_acme_domains.sh [--fail-only]
+#
 # Este script pode ser baixado e usado diretamente do repositório oficial:
 # https://github.com/marcelofmatos/scripts
 #
@@ -14,7 +16,7 @@
 # git clone https://github.com/marcelofmatos/scripts.git
 # cd scripts
 # chmod +x check_acme_domains.sh
-# ./check_acme_domains.sh
+# ./check_acme_domains.sh --fail-only
 
 # Função para checar se um comando existe, e instalar se não existir
 check_install() {
@@ -42,6 +44,12 @@ if [ ! -f "$ACME_FILE" ]; then
   exit 1
 fi
 
+# Parâmetro --fail-only
+FAIL_ONLY=0
+if [ "$1" = "--fail-only" ]; then
+  FAIL_ONLY=1
+fi
+
 # Detecta a primeira chave de nível superior (ex: myresolver, default, etc)
 ROOT_KEY=$(jq -r 'keys_unsorted[0]' "$ACME_FILE")
 echo "Chave raiz detectada: $ROOT_KEY"
@@ -50,11 +58,13 @@ echo "Chave raiz detectada: $ROOT_KEY"
 jq -r --arg key "$ROOT_KEY" '
   .[$key].Certificates // [] | .[] | select(.domain.main != null) | .domain.main
 ' "$ACME_FILE" | while read -r domain; do
-  echo "Testando DNS para $domain"
-  if host "$domain"; then
-    echo "Domínio $domain resolvido com sucesso."
+  if host "$domain" >/dev/null 2>&1; then
+    if [ $FAIL_ONLY -eq 0 ]; then
+      echo "Domínio $domain resolvido com sucesso."
+      echo "------------------------------"
+    fi
   else
     echo "Falha ao resolver $domain"
+    echo "------------------------------"
   fi
-  echo "------------------------------"
 done
