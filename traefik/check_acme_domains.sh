@@ -1,28 +1,15 @@
 #!/bin/sh
 #
-# Script: check_acme_domains.sh
-# Descrição: Lê o arquivo acme.json do Traefik v2, detecta a chave raiz customizada e testa os domínios em Certificates[].domain.main com o comando host.
+# Script: check_acme_domains_compat.sh
+# Descrição: Detecta se acme.json é do Traefik v1 ou v2 e testa domínios em Certificates[].domain.main com host.
 # Dependências: jq, host (bind-tools)
 #
-# Uso: ./check_acme_domains.sh [--fail-only] [--verbose]
-#
-# Parâmetros:
-#  --fail-only  : mostra somente domínios que falharam na resolução DNS
-#  --verbose    : mostra a saída completa do comando host
-#
-# Este script pode ser baixado e usado diretamente do repositório oficial:
-# https://github.com/marcelofmatos/scripts
+# Uso: ./check_acme_domains_compat.sh [--fail-only] [--verbose]
 #
 # Para baixar e executar diretamente:
-# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains.sh | sh
+# curl -sSL https://raw.githubusercontent.com/marcelofmatos/scripts/main/traefik/check_acme_domains_compat.sh | sh
 #
-# Ou clone o repositório para usar localmente:
-# git clone https://github.com/marcelofmatos/scripts.git
-# cd scripts
-# chmod +x check_acme_domains.sh
-# ./check_acme_domains.sh --fail-only --verbose
 
-# Função para checar se um comando existe, e instalar se não existir
 check_install() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Comando $1 não encontrado. Instalando..."
@@ -34,25 +21,18 @@ check_install() {
   fi
 }
 
-# Instalar dependências necessárias
 apk update
 check_install jq jq
 check_install host bind-tools
 
-# Arquivo acme.json do Traefik
 ACME_FILE="acme.json"
-
-# Verifica se arquivo existe
 if [ ! -f "$ACME_FILE" ]; then
   echo "Erro: arquivo $ACME_FILE não encontrado."
   exit 1
 fi
 
-# Inicializa flags dos parâmetros
 FAIL_ONLY=0
 VERBOSE=0
-
-# Processa parâmetros
 for arg in "$@"
 do
   case $arg in
@@ -62,14 +42,26 @@ do
   esac
 done
 
-# Detecta a primeira chave de nível superior (ex: myresolver, default, etc)
-ROOT_KEY=$(jq -r 'keys_unsorted[0]' "$ACME_FILE")
-echo "Chave raiz detectada: $ROOT_KEY"
+# Detecta se é Traefik v2 (presença de chave raiz personalizada com Certificates)
+ROOT_KEY=$(jq -r 'keys_unsorted | map(select(. != "acme")) | .[0]' "$ACME_FILE" 2>/dev/null)
+HAS_CERTS_V2=$(jq -e --arg key "$ROOT_KEY" '.[$key].Certificates? // empty' "$ACME_FILE" >/dev/null 2>&1 && echo yes || echo no)
 
-# Ler os domínios em Certificates dentro da chave raiz e testar com host
-jq -r --arg key "$ROOT_KEY" '
-  .[$key].Certificates // [] | .[] | select(.domain.main != null) | .domain.main
-' "$ACME_FILE" | while read -r domain; do
+if [ "$HAS_CERTS_V2" = "yes" ]; then
+  echo "Formato Traefik v2 detectado. Chave raiz: $ROOT_KEY"
+  DOMAINS=$(jq -r --arg key "$ROOT_KEY" '
+    .[$key].Certificates // [] | .[] | select(.domain.main != null) | .domain.main
+  ' "$ACME_FILE")
+elif jq -e '.acme.Certificates?' "$ACME_FILE" >/dev/null 2>&1; then
+  echo "Formato Traefik v1 detectado."
+  DOMAINS=$(jq -r '
+    .acme.Certificates // [] | .[] | select(.domain.main != null) | .domain.main
+  ' "$ACME_FILE")
+else
+  echo "Formato de arquivo acme.json não reconhecido."
+  exit 1
+fi
+
+echo "$DOMAINS" | while read -r domain; do
   if output=$(host "$domain" 2>&1); then
     if [ $FAIL_ONLY -eq 0 ]; then
       if [ $VERBOSE -eq 1 ]; then
