@@ -162,6 +162,26 @@ echo -e "${GREEN}Volumes selecionados:${NC}"
 printf '%s\n' "${VOLUMES_SELECIONADOS[@]}" | nl -w2 -s'. '
 echo ""
 
+# Mostrar resumo
+echo -e "${CYAN}======================================${NC}"
+echo -e "${CYAN}  Resumo da Operação${NC}"
+echo -e "${CYAN}======================================${NC}"
+echo -e "${BLUE}Origem:${NC}    $ORIGEM"
+echo -e "${BLUE}Destino:${NC}   $DESTINO"
+echo -e "${BLUE}Volumes:${NC}   ${#VOLUMES_SELECIONADOS[@]}"
+if $DRY_RUN; then
+    echo -e "${BLUE}Modo:${NC}      ${YELLOW}DRY-RUN (simulação)${NC}"
+else
+    echo -e "${BLUE}Modo:${NC}      ${RED}EXECUÇÃO REAL${NC}"
+fi
+if $USE_SUDO; then
+    echo -e "${BLUE}Permissões:${NC} Com sudo"
+else
+    echo -e "${BLUE}Permissões:${NC} Sem sudo"
+fi
+echo -e "${CYAN}======================================${NC}"
+echo ""
+
 # Confirmar
 if ! $DEBUG_MODE; then
     echo -e "${YELLOW}Deseja continuar? (s/N):${NC}"
