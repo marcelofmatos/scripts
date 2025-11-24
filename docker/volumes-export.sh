@@ -12,31 +12,6 @@ else
     DOCKER_CMD="docker"
 fi
 
-# Cabeçalhos
-echo "# ==============================="
-echo "# COMANDOS PARA CRIAR VOLUMES"
-echo "# ==============================="
-echo
-
-$DOCKER_CMD volume ls --format "{{.Name}}" | while IFS= read -r volume_name; do
-    driver=$($DOCKER_CMD volume inspect "$volume_name" --format '{{.Driver}}' 2>/dev/null)
-    containers=$($DOCKER_CMD ps -a --filter volume="$volume_name" --format "{{.Names}}" 2>/dev/null | tr '\n' ', ' | sed 's/,$//')
-
-    if [ -n "$containers" ]; then
-        echo "# Volume: $volume_name (usado por: $containers)"
-    else
-        echo "# Volume: $volume_name"
-    fi
-
-    if [ "$driver" = "local" ] || [ -z "$driver" ]; then
-        echo "docker volume create $volume_name"
-    else
-        echo "docker volume create --driver $driver $volume_name"
-    fi
-    echo
-
-done
-
 # Backup
 echo "# ==============================="
 echo "# COMANDOS PARA BACKUP DOS VOLUMES (ORIGEM)"
@@ -64,3 +39,28 @@ $DOCKER_CMD volume ls --format "{{.Name}}" | while IFS= read -r volume_name; do
 
 done
 
+
+# Cabeçalhos
+echo "# ==============================="
+echo "# COMANDOS PARA CRIAR VOLUMES"
+echo "# ==============================="
+echo
+
+$DOCKER_CMD volume ls --format "{{.Name}}" | while IFS= read -r volume_name; do
+    driver=$($DOCKER_CMD volume inspect "$volume_name" --format '{{.Driver}}' 2>/dev/null)
+    containers=$($DOCKER_CMD ps -a --filter volume="$volume_name" --format "{{.Names}}" 2>/dev/null | tr '\n' ', ' | sed 's/,$//')
+
+    if [ -n "$containers" ]; then
+        echo "# Volume: $volume_name (usado por: $containers)"
+    else
+        echo "# Volume: $volume_name"
+    fi
+
+    if [ "$driver" = "local" ] || [ -z "$driver" ]; then
+        echo "docker volume create $volume_name"
+    else
+        echo "docker volume create --driver $driver $volume_name"
+    fi
+    echo
+
+done
