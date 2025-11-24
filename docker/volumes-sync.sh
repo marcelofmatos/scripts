@@ -3,10 +3,20 @@
 # curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync.sh | bash
 #
 # Script interativo para sincronizar volumes Docker entre servidores
-# Uso com variáveis de ambiente:
+#
+# Variáveis de ambiente disponíveis:
+#   ORIGEM      - Servidor de origem (ex: usuario@ip ou 'local')
+#   DESTINO     - Servidor de destino (ex: usuario@ip ou 'local')
+#   DRY_RUN     - Simulação sem executar (true/false, padrão: true)
+#   VERBOSE     - Mostrar lista de arquivos (true/false, padrão: false)
+#   DEBUG       - Apenas mostrar comandos sem executar (true/false, padrão: false)
+#   USE_SUDO    - Usar sudo para acessar volumes (true/false, padrão: true)
+#
+# Exemplos de uso:
 #   ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 #   DRY_RUN=false ORIGEM=local DESTINO=usuario@hetzner ./volumes-sync.sh
 #   DEBUG=true ORIGEM=usuario@azure DESTINO=local ./volumes-sync.sh
+#   VERBOSE=true DRY_RUN=false ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 
 set -e
 
@@ -21,6 +31,7 @@ NC='\033[0m'
 # Ler configurações de variáveis de ambiente
 DRY_RUN=${DRY_RUN:-true}
 DEBUG_MODE=${DEBUG:-false}
+VERBOSE=${VERBOSE:-false}
 ORIGEM=${ORIGEM:-""}
 DESTINO=${DESTINO:-""}
 USE_SUDO=${USE_SUDO:-true}
@@ -271,7 +282,14 @@ sync_volume() {
     fi
     
     # Construir comando rsync
-    RSYNC_OPTS="-avz --progress -e 'ssh -o StrictHostKeyChecking=no'"
+    if $VERBOSE; then
+        # Modo verbose: listar todos os arquivos
+        RSYNC_OPTS="-avz --progress -e 'ssh -o StrictHostKeyChecking=no'"
+    else
+        # Modo normal: apenas barra de progresso
+        RSYNC_OPTS="-az --info=progress2 -e 'ssh -o StrictHostKeyChecking=no'"
+    fi
+    
     if $DRY_RUN; then
         RSYNC_OPTS="$RSYNC_OPTS --dry-run"
     fi
