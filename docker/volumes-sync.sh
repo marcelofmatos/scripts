@@ -23,6 +23,7 @@ DRY_RUN=${DRY_RUN:-true}
 DEBUG_MODE=${DEBUG:-false}
 ORIGEM=${ORIGEM:-""}
 DESTINO=${DESTINO:-""}
+USE_SUDO=${USE_SUDO:-true}
 
 # Banner
 echo -e "${CYAN}======================================${NC}"
@@ -43,18 +44,34 @@ fi
 
 # Configurar comandos Docker
 if [ "$ORIGEM" = "local" ]; then
-    DOCKER_ORIGEM="docker"
+    if $USE_SUDO; then
+        DOCKER_ORIGEM="sudo docker"
+    else
+        DOCKER_ORIGEM="docker"
+    fi
     SSH_ORIGEM=""
 else
-    DOCKER_ORIGEM="ssh $ORIGEM docker"
+    if $USE_SUDO; then
+        DOCKER_ORIGEM="ssh $ORIGEM sudo docker"
+    else
+        DOCKER_ORIGEM="ssh $ORIGEM docker"
+    fi
     SSH_ORIGEM="ssh $ORIGEM"
 fi
 
 if [ "$DESTINO" = "local" ]; then
-    DOCKER_DESTINO="docker"
+    if $USE_SUDO; then
+        DOCKER_DESTINO="sudo docker"
+    else
+        DOCKER_DESTINO="docker"
+    fi
     SSH_DESTINO=""
 else
-    DOCKER_DESTINO="ssh $DESTINO docker"
+    if $USE_SUDO; then
+        DOCKER_DESTINO="ssh $DESTINO sudo docker"
+    else
+        DOCKER_DESTINO="ssh $DESTINO docker"
+    fi
     SSH_DESTINO="ssh $DESTINO"
 fi
 
@@ -73,8 +90,10 @@ echo ""
 
 # Listar volumes de ambos os servidores
 echo -e "${CYAN}Carregando volumes...${NC}"
+set +e
 VOLUMES_ORIGEM=($($DOCKER_ORIGEM volume ls --format "{{.Name}}" 2>/dev/null))
 VOLUMES_DESTINO=($($DOCKER_DESTINO volume ls --format "{{.Name}}" 2>/dev/null))
+set -e
 
 if [ ${#VOLUMES_ORIGEM[@]} -eq 0 ]; then
     echo -e "${RED}✗ Nenhum volume encontrado na origem!${NC}"
@@ -175,13 +194,21 @@ sync_volume() {
     if [ "$ORIGEM" = "local" ]; then
         MOUNT_ORIGEM=$(get_mountpoint "$ORIGEM" "$DOCKER_ORIGEM" "$volume")
     else
-        MOUNT_ORIGEM=$($SSH_ORIGEM "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        if $USE_SUDO; then
+            MOUNT_ORIGEM=$($SSH_ORIGEM "sudo docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        else
+            MOUNT_ORIGEM=$($SSH_ORIGEM "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        fi
     fi
     
     if [ "$DESTINO" = "local" ]; then
         MOUNT_DESTINO=$(get_mountpoint "$DESTINO" "$DOCKER_DESTINO" "$volume")
     else
-        MOUNT_DESTINO=$($SSH_DESTINO "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        if $USE_SUDO; then
+            MOUNT_DESTINO=$($SSH_DESTINO "sudo docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        else
+            MOUNT_DESTINO=$($SSH_DESTINO "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null" || echo "")
+        fi
     fi
     
     if [ -z "$MOUNT_ORIGEM" ]; then
@@ -194,9 +221,17 @@ sync_volume() {
         echo -e "${YELLOW}⚠ Volume não existe no destino. Criando...${NC}"
         if $DEBUG_MODE; then
             if [ "$DESTINO" = "local" ]; then
-                echo "docker volume create $volume"
+                if $USE_SUDO; then
+                    echo "sudo docker volume create $volume"
+                else
+                    echo "docker volume create $volume"
+                fi
             else
-                echo "ssh $DESTINO docker volume create $volume"
+                if $USE_SUDO; then
+                    echo "ssh $DESTINO sudo docker volume create $volume"
+                else
+                    echo "ssh $DESTINO docker volume create $volume"
+                fi
             fi
         else
             $DOCKER_DESTINO volume create "$volume" > /dev/null
@@ -206,32 +241,66 @@ sync_volume() {
             if [ "$DESTINO" = "local" ]; then
                 MOUNT_DESTINO=$(get_mountpoint "$DESTINO" "$DOCKER_DESTINO" "$volume")
             else
-                MOUNT_DESTINO=$($SSH_DESTINO "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null")
+                if $USE_SUDO; then
+                    MOUNT_DESTINO=$($SSH_DESTINO "sudo docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null")
+                else
+                    MOUNT_DESTINO=$($SSH_DESTINO "docker volume inspect $volume --format '{{.Mountpoint}}' 2>/dev/null")
+                fi
             fi
         fi
     fi
     
     # Construir comando rsync
-    RSYNC_OPTS="-avz --progress"
+    RSYNC_OPTS="-avz --progress -e 'ssh -o StrictHostKeyChecking=no'"
     if $DRY_RUN; then
         RSYNC_OPTS="$RSYNC_OPTS --dry-run"
     fi
     
+    # Adicionar --rsync-path se necessário
+    if $USE_SUDO; then
+        RSYNC_OPTS="$RSYNC_OPTS --rsync-path='sudo rsync'"
+    fi
+    
     # Montar comando baseado em origem/destino local ou remoto
     if [ "$ORIGEM" = "local" ] && [ "$DESTINO" = "local" ]; then
-        RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        if $USE_SUDO; then
+            RSYNC_CMD="sudo rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        else
+            RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        fi
     elif [ "$ORIGEM" = "local" ]; then
-        RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/"
+        if $USE_SUDO; then
+            RSYNC_CMD="sudo rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/"
+        else
+            RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/"
+        fi
     elif [ "$DESTINO" = "local" ]; then
-        RSYNC_CMD="rsync $RSYNC_OPTS $ORIGEM:$MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        if $USE_SUDO; then
+            RSYNC_CMD="sudo rsync $RSYNC_OPTS $ORIGEM:$MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        else
+            RSYNC_CMD="rsync $RSYNC_OPTS $ORIGEM:$MOUNT_ORIGEM/ $MOUNT_DESTINO/"
+        fi
     else
-        # Ambos remotos - usar SSH tunnel
-        RSYNC_CMD="ssh $ORIGEM \"rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/\""
+        # Ambos remotos - rsync via SSH com sudo tanto na origem quanto no destino
+        if $USE_SUDO; then
+            RSYNC_CMD="ssh $ORIGEM \"sudo rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/\""
+        else
+            RSYNC_CMD="ssh $ORIGEM \"rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/\""
+        fi
     fi
     
     echo ""
-    echo -e "${BLUE}Origem:${NC}  $MOUNT_ORIGEM"
-    echo -e "${BLUE}Destino:${NC} $MOUNT_DESTINO"
+    if [ "$ORIGEM" = "local" ]; then
+        echo -e "${BLUE}Origem:${NC}  local:$MOUNT_ORIGEM"
+    else
+        echo -e "${BLUE}Origem:${NC}  $ORIGEM:$MOUNT_ORIGEM"
+    fi
+    
+    if [ "$DESTINO" = "local" ]; then
+        echo -e "${BLUE}Destino:${NC} local:$MOUNT_DESTINO"
+    else
+        echo -e "${BLUE}Destino:${NC} $DESTINO:$MOUNT_DESTINO"
+    fi
     echo ""
     
     if $DEBUG_MODE; then
@@ -247,7 +316,14 @@ sync_volume() {
         echo ""
         
         # Executar rsync
-        eval "$RSYNC_CMD"
+        if ! eval "$RSYNC_CMD"; then
+            echo ""
+            echo -e "${RED}✗ Erro ao executar rsync!${NC}"
+            echo -e "${YELLOW}Comando executado:${NC}"
+            echo "$RSYNC_CMD"
+            echo ""
+            return 1
+        fi
         
         echo ""
         if $DRY_RUN; then
