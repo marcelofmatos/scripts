@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync-tui.sh | bash
+# 
 # Script interativo com interface TUI usando dialog/whiptail
 # Versão elegante com menus visuais
 #
