@@ -2,7 +2,7 @@
 
 # Script interativo para sincronizar volumes Docker entre servidores
 #
-# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/sync-volumes.sh [--no-dry-run] [--debug] [servidor-origem] [servidor-destino] | bash
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync.sh | bash
 
 set -e
 
