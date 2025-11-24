@@ -1,8 +1,12 @@
 #!/bin/bash
-
-# Script interativo para sincronizar volumes Docker entre servidores
 #
 # curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync.sh | bash
+#
+# Script interativo para sincronizar volumes Docker entre servidores
+# Uso com variáveis de ambiente:
+#   ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
+#   DRY_RUN=false ORIGEM=local DESTINO=usuario@hetzner ./volumes-sync.sh
+#   DEBUG=true ORIGEM=usuario@azure DESTINO=local ./volumes-sync.sh
 
 set -e
 
@@ -14,33 +18,11 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# Configurações padrão
-DRY_RUN=true
-DEBUG_MODE=false
-ORIGEM=""
-DESTINO=""
-
-# Parse argumentos
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --no-dry-run)
-            DRY_RUN=false
-            shift
-            ;;
-        --debug)
-            DEBUG_MODE=true
-            shift
-            ;;
-        *)
-            if [ -z "$ORIGEM" ]; then
-                ORIGEM="$1"
-            elif [ -z "$DESTINO" ]; then
-                DESTINO="$1"
-            fi
-            shift
-            ;;
-    esac
-done
+# Ler configurações de variáveis de ambiente
+DRY_RUN=${DRY_RUN:-true}
+DEBUG_MODE=${DEBUG:-false}
+ORIGEM=${ORIGEM:-""}
+DESTINO=${DESTINO:-""}
 
 # Banner
 echo -e "${CYAN}======================================${NC}"
@@ -80,7 +62,7 @@ echo ""
 echo -e "${GREEN}✓ Origem:${NC} $ORIGEM"
 echo -e "${GREEN}✓ Destino:${NC} $DESTINO"
 if $DRY_RUN; then
-    echo -e "${YELLOW}⚠ Modo:${NC} DRY-RUN (use --no-dry-run para executar)"
+    echo -e "${YELLOW}⚠ Modo:${NC} DRY-RUN (use DRY_RUN=false para executar)"
 else
     echo -e "${RED}⚠ Modo:${NC} EXECUÇÃO REAL"
 fi
@@ -89,28 +71,48 @@ if $DEBUG_MODE; then
 fi
 echo ""
 
-# Função para listar volumes
-listar_volumes() {
-    local servidor=$1
-    local docker_cmd=$2
-    
-    echo -e "${BLUE}Volumes em $servidor:${NC}"
-    $docker_cmd volume ls --format "{{.Name}}" | nl -w2 -s'. '
-    echo ""
-}
-
-# Listar volumes da origem
-echo -e "${CYAN}Carregando volumes da origem...${NC}"
-VOLUMES_ORIGEM=($($DOCKER_ORIGEM volume ls --format "{{.Name}}"))
+# Listar volumes de ambos os servidores
+echo -e "${CYAN}Carregando volumes...${NC}"
+VOLUMES_ORIGEM=($($DOCKER_ORIGEM volume ls --format "{{.Name}}" 2>/dev/null))
+VOLUMES_DESTINO=($($DOCKER_DESTINO volume ls --format "{{.Name}}" 2>/dev/null))
 
 if [ ${#VOLUMES_ORIGEM[@]} -eq 0 ]; then
     echo -e "${RED}✗ Nenhum volume encontrado na origem!${NC}"
     exit 1
 fi
 
-# Mostrar volumes com índices
 echo ""
-listar_volumes "$ORIGEM" "$DOCKER_ORIGEM"
+echo -e "${CYAN}======================================${NC}"
+echo -e "${CYAN}  Volumes Disponíveis${NC}"
+echo -e "${CYAN}======================================${NC}"
+echo ""
+
+# Cabeçalho das colunas
+printf "${BLUE}%-4s %-35s %-35s${NC}\n" "#" "ORIGEM ($ORIGEM)" "DESTINO ($DESTINO)"
+printf "${BLUE}%-4s %-35s %-35s${NC}\n" "----" "-----------------------------------" "-----------------------------------"
+
+# Criar array associativo para volumes do destino
+declare -A destino_volumes
+for vol in "${VOLUMES_DESTINO[@]}"; do
+    destino_volumes[$vol]=1
+done
+
+# Listar volumes em colunas
+for i in "${!VOLUMES_ORIGEM[@]}"; do
+    vol_origem="${VOLUMES_ORIGEM[$i]}"
+    num=$((i + 1))
+    
+    # Verificar se existe no destino
+    if [ -n "${destino_volumes[$vol_origem]}" ]; then
+        vol_destino="${GREEN}✓${NC} $vol_origem"
+    else
+        vol_destino="${YELLOW}✗${NC} (não existe)"
+    fi
+    
+    printf "${CYAN}%-4s${NC} %-35s %-35s\n" "$num." "$vol_origem" "$(echo -e $vol_destino)"
+done
+
+echo ""
 
 # Solicitar seleção
 echo -e "${BLUE}Digite os números dos volumes para sincronizar (ex: 1 3 5 ou 'all'):${NC}"
@@ -271,7 +273,7 @@ echo -e "${CYAN}======================================${NC}"
 echo ""
 echo -e "Total de volumes processados: ${#VOLUMES_SELECIONADOS[@]}"
 if $DRY_RUN; then
-    echo -e "${YELLOW}Use --no-dry-run para executar a sincronização real${NC}"
+    echo -e "${YELLOW}Use DRY_RUN=false para executar a sincronização real${NC}"
 fi
 if $DEBUG_MODE; then
     echo -e "${CYAN}Modo debug ativo - apenas comandos foram mostrados${NC}"
