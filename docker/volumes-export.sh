@@ -63,3 +63,4 @@ $DOCKER_CMD volume ls --format "{{.Name}}" | while IFS= read -r volume_name; do
     echo
 
 done
+
