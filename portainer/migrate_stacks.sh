@@ -17,9 +17,10 @@ fi
 SERVER_URL="${SERVER_URL:-http://localhost:9000}"
 PORTAINER_USER="${PORTAINER_USER:-admin}"
 PORTAINER_PW="${PORTAINER_PW:-admin}"
-NEW_ENDPOINT_ID="${NEW_ENDPOINT_ID:-$1}"  # Endpoint ID da variável de ambiente ou do primeiro argumento
-STACK_ID="${STACK_ID:-$2}"                # Stack ID da variável de ambiente ou do segundo argumento
-NEW_SWARM_ID="${NEW_SWARM_ID:-$3}"        # Swarm ID da variável de ambiente ou do terceiro argumento
+SHOW_ALL_STACKS="${SHOW_ALL_STACKS:-false}"  # Se true, mostra todas as stacks (não filtra por endpoint)
+NEW_ENDPOINT_ID="${NEW_ENDPOINT_ID:-$1}"     # Endpoint ID da variável de ambiente ou do primeiro argumento
+STACK_ID="${STACK_ID:-$2}"                   # Stack ID da variável de ambiente ou do segundo argumento
+NEW_SWARM_ID="${NEW_SWARM_ID:-$3}"           # Swarm ID da variável de ambiente ou do terceiro argumento
 
 # Função para autenticação e obtenção do JWT token
 function get_jwt_token() {
@@ -184,8 +185,13 @@ fi
 # Se STACK_ID não foi fornecido, permite escolha interativa
 if [[ -z "$STACK_ID" ]]; then
   echo ""
-  echo "Stacks disponíveis (exceto as que já estão no endpoint $NEW_ENDPOINT_ID):"
-  list_stacks "$NEW_ENDPOINT_ID"
+  if [[ "$SHOW_ALL_STACKS" == "true" ]]; then
+    echo "Stacks disponíveis:"
+    list_stacks
+  else
+    echo "Stacks disponíveis (exceto as que já estão no endpoint $NEW_ENDPOINT_ID):"
+    list_stacks "$NEW_ENDPOINT_ID"
+  fi
 
   echo ""
   echo -n "Digite o ID da stack que deseja migrar: "
