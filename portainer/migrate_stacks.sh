@@ -57,13 +57,19 @@ function select_endpoint() {
   echo "Endpoints disponíveis:" >&2
   list_endpoints >&2
   
+  # Obter o último endpoint ID como padrão
+  RESPONSE=$(curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+    "$SERVER_URL/api/endpoints")
+  DEFAULT_ENDPOINT=$(echo "$RESPONSE" | jq -r '.[-1].Id')
+  
   echo "" >&2
-  echo -n "Digite o ID do endpoint de destino: " >&2
+  echo -n "Digite o ID do endpoint de destino [último: $DEFAULT_ENDPOINT]: " >&2
   read ENDPOINT_ID
   
+  # Se não digitou nada, usa o padrão
   if [[ -z "$ENDPOINT_ID" ]]; then
-    echo "ID do endpoint não fornecido." >&2
-    exit 1
+    ENDPOINT_ID=$DEFAULT_ENDPOINT
+    echo "Usando endpoint padrão: $ENDPOINT_ID" >&2
   fi
   
   echo "$ENDPOINT_ID"
