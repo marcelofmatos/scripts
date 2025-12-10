@@ -92,13 +92,19 @@ function get_swarm_id() {
   echo "$SWARM_ID"
 }
 
-# Função para listar as stacks disponíveis
+# Função para listar as stacks disponíveis (exceto as que já estão no endpoint escolhido)
 function list_stacks() {
+  local EXCLUDE_ENDPOINT_ID=$1
+  
   RESPONSE=$(curl -s -H "Authorization: Bearer $JWT_TOKEN" \
     "$SERVER_URL/api/stacks")
   
   if echo "$RESPONSE" | jq empty > /dev/null 2>&1; then
-    echo "$RESPONSE" | jq -r '.[] | "ID: \(.Id) - Name: \(.Name)"'
+    if [[ -n "$EXCLUDE_ENDPOINT_ID" ]]; then
+      echo "$RESPONSE" | jq -r --arg endpoint "$EXCLUDE_ENDPOINT_ID" '.[] | select(.EndpointId != ($endpoint | tonumber)) | "ID: \(.Id) - Name: \(.Name) - Endpoint: \(.EndpointId)"'
+    else
+      echo "$RESPONSE" | jq -r '.[] | "ID: \(.Id) - Name: \(.Name) - Endpoint: \(.EndpointId)"'
+    fi
   else
     echo "Erro ao listar stacks. Resposta da API:"
     echo "$RESPONSE"
@@ -172,8 +178,8 @@ fi
 # Se STACK_ID não foi fornecido, permite escolha interativa
 if [[ -z "$STACK_ID" ]]; then
   echo ""
-  echo "Stacks disponíveis:"
-  list_stacks
+  echo "Stacks disponíveis (exceto as que já estão no endpoint $NEW_ENDPOINT_ID):"
+  list_stacks "$NEW_ENDPOINT_ID"
 
   echo ""
   echo -n "Digite o ID da stack que deseja migrar: "
