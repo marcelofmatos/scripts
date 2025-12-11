@@ -1,7 +1,9 @@
 #!/bin/bash
 #
 # curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync.sh | bash
+#
 # curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/docker/volumes-sync.sh > volumes-sync.sh
+# bash volumes-sync.sh
 #
 # Script interativo para sincronizar volumes Docker entre servidores
 #
