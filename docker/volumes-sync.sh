@@ -29,6 +29,8 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Ler configurações de variáveis de ambiente
+# Salvar se DRY_RUN foi definido explicitamente
+[ -n "${DRY_RUN+x}" ] && DRY_RUN_ORIGINAL=$DRY_RUN
 DRY_RUN=${DRY_RUN:-true}
 DEBUG_MODE=${DEBUG:-false}
 VERBOSE=${VERBOSE:-false}
@@ -172,6 +174,19 @@ echo ""
 echo -e "${GREEN}Volumes selecionados:${NC}"
 printf '%s\n' "${VOLUMES_SELECIONADOS[@]}" | nl -w2 -s'. '
 echo ""
+
+# Perguntar se deve desativar DRY_RUN
+if $DRY_RUN && [ -z "${DRY_RUN_ORIGINAL+x}" ]; then
+    echo -e "${YELLOW}Deseja desativar o modo DRY_RUN e executar a sincronização real? (s/N):${NC}"
+    read -r DESATIVAR_DRY_RUN
+    if [[ "$DESATIVAR_DRY_RUN" =~ ^[Ss]$ ]]; then
+        DRY_RUN=false
+        echo -e "${RED}✓ Modo DRY_RUN desativado - execução real será realizada${NC}"
+    else
+        echo -e "${YELLOW}✓ Modo DRY_RUN mantido - apenas simulação${NC}"
+    fi
+    echo ""
+fi
 
 # Mostrar resumo
 echo -e "${CYAN}======================================${NC}"
