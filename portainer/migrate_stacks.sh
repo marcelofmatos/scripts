@@ -2,8 +2,7 @@
 #
 # curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_stacks.sh | bash
 #
-# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_stacks.sh > portainer-stacks-manager.sh
-# bash portainer-stacks-manager.sh
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/refs/heads/main/portainer/migrate_stacks.sh > portainer-stacks-manager.sh; bash portainer-stacks-manager.sh
 #
 
 #set -x 
