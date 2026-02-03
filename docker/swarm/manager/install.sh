@@ -123,7 +123,7 @@ bash /var/lib/docker/volumes/manager/_data/portainer/update.sh
 while true; do 
     echo "Waiting portainer service"
     sleep 10
-    curl -qsI localhost:9000 > /dev/null
+    curl -qsI 127.0.0.1:9000 > /dev/null
     if [ "$?" == "0" ]; then break; fi
 done
 
