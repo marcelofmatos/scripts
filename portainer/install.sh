@@ -2,7 +2,7 @@
 #
 # Portainer install
 #
-# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/portainer/ | bash
+# curl https://raw.githubusercontent.com/marcelofmatos/scripts/main/portainer/install.sh | bash
 # 
 
 PORTAINER_USERNAME=${PORTAINER_USERNAME:-"admin"}
