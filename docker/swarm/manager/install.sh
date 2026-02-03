@@ -129,7 +129,7 @@ done
 
 echo "Portainer started"
 
-curl -X POST http://localhost:9000/api/users/admin/init \
+curl -X POST http://127.0.0.1:9000/api/users/admin/init \
   -H 'Content-Type: application/json' \
   -d "{ \"Username\": \"$PORTAINER_USERNAME\", \"Password\": \"$PORTAINER_PASSWORD\" }" > /dev/null
 
