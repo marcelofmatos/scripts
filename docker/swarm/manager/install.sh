@@ -65,7 +65,7 @@ if [ "$install_docker" ]; then
 fi;
 
 if [ "$install_ctop" ]; then
-  curl -Lo /usr/local/bin/ctop https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-darwin-amd64
+  curl -Lo /usr/local/bin/ctop https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64
   chmod +x /usr/local/bin/ctop
 fi
 
