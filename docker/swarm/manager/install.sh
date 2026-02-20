@@ -12,7 +12,6 @@ command -v systemctl > /dev/null && systemctl_cmd=1
 command -v git > /dev/null || install_packages=1
 command -v pip3 > /dev/null || install_packages=1
 command -v docker > /dev/null || install_docker=1
-command -v docker-compose > /dev/null || install_dockercompose=1
 
 # to read your local .env file if exists and creating project as you wish
 [ -f .env ] && . ./.env
@@ -62,34 +61,6 @@ if [ "$install_docker" ]; then
     if [ $systemctl_cmd ]; then
         systemctl enable docker && systemctl start docker
     fi;
-fi;
-
-if [ "$install_dockercompose" ]; then
-    case "$pkg_mgmt" in
-        apt)
-            apt-get update
-            apt-get install -y --no-install-recommends \
-                docker-compose \
-                python3-setuptools
-        ;;
-        yum)
-            yum install -y \
-                docker-compose \
-                python3-setuptools
-        ;;
-        *)
-            echo "Fallback to pip installation for docker-compose"
-            python3 -m pip config set global.break-system-packages true
-            python3 -m pip config set global.no-build-isolation true
-            python3 -m pip install --upgrade pip
-            pip3 install setuptools
-            pip3 install docker-compose
-            # docker-compose link
-            if [ -f /usr/local/bin/docker-compose ]; then
-                ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-            fi;
-        ;;
-    esac
 fi;
 
 export ADVERTISE_INTERFACE=${ADVERTISE_INTERFACE:-`ip -br a | grep -v 127.0 | head -n 1 | cut -f 1 -d " "`}

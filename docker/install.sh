@@ -12,7 +12,6 @@ command -v systemctl > /dev/null && systemctl_cmd=1
 command -v git > /dev/null || install_packages=1
 command -v pip3 > /dev/null || install_packages=1
 command -v docker > /dev/null || install_docker=1
-command -v docker-compose > /dev/null || install_dockercompose=1
 
 # to read your local .env file if exists and creating project as you wish
 [ -f .env ] && . ./.env
@@ -52,16 +51,5 @@ if [ "$install_docker" ]; then
     fi
     if [ $systemctl_cmd ]; then
         systemctl enable docker && systemctl start docker
-    fi;
-fi;
-
-if [ "$install_dockercompose" ]; then
-    python3 -m pip install --upgrade pip
-    pip3 install setuptools
-    pip3 install docker-compose
-
-    # docker-compose link
-    if [ -f /usr/local/bin/docker-compose ]; then
-        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
     fi;
 fi;
