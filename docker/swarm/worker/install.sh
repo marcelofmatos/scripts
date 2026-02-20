@@ -12,6 +12,7 @@ command -v systemctl > /dev/null && systemctl_cmd=1
 command -v git > /dev/null || install_packages=1
 command -v pip3 > /dev/null || install_packages=1
 command -v docker > /dev/null || install_docker=1
+command -v ctop > /dev/null || install_ctop=1
 
 # to read your local .env file if exists and creating project as you wish
 [ -f .env ] && . ./.env
@@ -62,6 +63,11 @@ if [ "$install_docker" ]; then
         systemctl enable docker && systemctl start docker
     fi;
 fi;
+
+if [ "$install_ctop" ]; then
+  curl -Lo /usr/local/bin/ctop https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-darwin-amd64
+  chmod +x /usr/local/bin/ctop
+fi
 
 ## Kernel config
 sysctl -w vm.max_map_count=262144
