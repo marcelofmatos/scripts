@@ -7,8 +7,8 @@
 # Script interativo para sincronizar volumes Docker entre servidores
 #
 # Variáveis de ambiente disponíveis:
-#   ORIGEM      - Servidor de origem (ex: usuario@ip ou 'local')
-#   DESTINO     - Servidor de destino (ex: usuario@ip ou 'local')
+#   ORIGEM      - Servidor de origem (ex: usuario@ip, alias SSH ou 'localhost')
+#   DESTINO     - Servidor de destino (ex: usuario@ip, alias SSH ou 'localhost')
 #   DRY_RUN     - Simulação sem executar (true/false, padrão: true)
 #   VERBOSE     - Mostrar lista de arquivos (true/false, padrão: false)
 #   DEBUG       - Apenas mostrar comandos sem executar (true/false, padrão: false)
@@ -16,8 +16,8 @@
 #
 # Exemplos de uso:
 #   ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
-#   DRY_RUN=false ORIGEM=local DESTINO=usuario@hetzner ./volumes-sync.sh
-#   DEBUG=true ORIGEM=usuario@azure DESTINO=local ./volumes-sync.sh
+#   DRY_RUN=false ORIGEM=localhost DESTINO=usuario@hetzner ./volumes-sync.sh
+#   DEBUG=true ORIGEM=usuario@azure DESTINO=localhost ./volumes-sync.sh
 #   VERBOSE=true DRY_RUN=false ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 
 set -e
@@ -46,19 +46,58 @@ echo -e "${CYAN}  Sincronização de Volumes Docker${NC}"
 echo -e "${CYAN}======================================${NC}"
 echo ""
 
+# Função para listar servidores disponíveis (SSH config + localhost)
+listar_servidores() {
+    local titulo=$1
+    local SERVIDORES=("localhost")
+
+    # Ler hosts do ~/.ssh/config (excluindo wildcards)
+    if [ -f "$HOME/.ssh/config" ]; then
+        while IFS= read -r linha; do
+            host=$(echo "$linha" | awk '{print $2}')
+            [[ "$host" == *"*"* ]] && continue
+            [[ "$host" == "localhost" ]] && continue
+            SERVIDORES+=("$host")
+        done < <(grep -i "^Host " "$HOME/.ssh/config" 2>/dev/null)
+    fi
+
+    echo -e "${CYAN}$titulo${NC}" >&2
+    echo -e "${BLUE}  0.${NC} (digitar manualmente)" >&2
+    for i in "${!SERVIDORES[@]}"; do
+        echo -e "${BLUE}  $((i + 1)).${NC} ${SERVIDORES[$i]}" >&2
+    done
+    echo "" >&2
+    echo -e "${YELLOW}Número ou endereço (ex: usuario@ip):${NC}" >&2
+    read -r ESCOLHA
+
+    if [[ "$ESCOLHA" =~ ^[0-9]+$ ]]; then
+        if [ "$ESCOLHA" -eq 0 ]; then
+            echo -e "${YELLOW}Digite o endereço do servidor:${NC}" >&2
+            read -r SERVIDOR_ESCOLHIDO
+        elif [ "$ESCOLHA" -ge 1 ] && [ "$ESCOLHA" -le "${#SERVIDORES[@]}" ]; then
+            SERVIDOR_ESCOLHIDO="${SERVIDORES[$((ESCOLHA - 1))]}"
+        else
+            echo -e "${RED}✗ Opção inválida!${NC}" >&2
+            exit 1
+        fi
+    else
+        SERVIDOR_ESCOLHIDO="$ESCOLHA"
+    fi
+
+    echo "$SERVIDOR_ESCOLHIDO"
+}
+
 # Solicitar servidores se não fornecidos
 if [ -z "$ORIGEM" ]; then
-    echo -e "${BLUE}Digite o servidor ORIGEM (ex: usuario@ip ou 'local'):${NC}"
-    read -r ORIGEM
+    ORIGEM=$(listar_servidores "Servidores disponíveis - ORIGEM:")
 fi
 
 if [ -z "$DESTINO" ]; then
-    echo -e "${BLUE}Digite o servidor DESTINO (ex: usuario@ip ou 'local'):${NC}"
-    read -r DESTINO
+    DESTINO=$(listar_servidores "Servidores disponíveis - DESTINO:")
 fi
 
 # Configurar comandos Docker
-if [ "$ORIGEM" = "local" ]; then
+if [ "$ORIGEM" = "localhost" ]; then
     if $USE_SUDO; then
         DOCKER_ORIGEM="sudo docker"
     else
@@ -74,7 +113,7 @@ else
     SSH_ORIGEM="ssh $ORIGEM"
 fi
 
-if [ "$DESTINO" = "local" ]; then
+if [ "$DESTINO" = "localhost" ]; then
     if $USE_SUDO; then
         DOCKER_DESTINO="sudo docker"
     else
@@ -239,7 +278,7 @@ sync_volume() {
     echo -e "${CYAN}─────────────────────────────────────${NC}"
     
     # Obter mountpoints
-    if [ "$ORIGEM" = "local" ]; then
+    if [ "$ORIGEM" = "localhost" ]; then
         MOUNT_ORIGEM=$(get_mountpoint "$ORIGEM" "$DOCKER_ORIGEM" "$volume")
     else
         if $USE_SUDO; then
@@ -249,7 +288,7 @@ sync_volume() {
         fi
     fi
     
-    if [ "$DESTINO" = "local" ]; then
+    if [ "$DESTINO" = "localhost" ]; then
         MOUNT_DESTINO=$(get_mountpoint "$DESTINO" "$DOCKER_DESTINO" "$volume")
     else
         if $USE_SUDO; then
@@ -268,7 +307,7 @@ sync_volume() {
     if [ -z "$MOUNT_DESTINO" ]; then
         echo -e "${YELLOW}⚠ Volume não existe no destino. Criando...${NC}"
         if $DEBUG_MODE; then
-            if [ "$DESTINO" = "local" ]; then
+            if [ "$DESTINO" = "localhost" ]; then
                 if $USE_SUDO; then
                     echo "sudo docker volume create $volume"
                 else
@@ -286,7 +325,7 @@ sync_volume() {
             echo -e "${GREEN}✓ Volume criado no destino${NC}"
             
             # Obter mountpoint novamente
-            if [ "$DESTINO" = "local" ]; then
+            if [ "$DESTINO" = "localhost" ]; then
                 MOUNT_DESTINO=$(get_mountpoint "$DESTINO" "$DOCKER_DESTINO" "$volume")
             else
                 if $USE_SUDO; then
@@ -317,19 +356,19 @@ sync_volume() {
     fi
     
     # Montar comando baseado em origem/destino local ou remoto
-    if [ "$ORIGEM" = "local" ] && [ "$DESTINO" = "local" ]; then
+    if [ "$ORIGEM" = "localhost" ] && [ "$DESTINO" = "localhost" ]; then
         if $USE_SUDO; then
             RSYNC_CMD="sudo rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $MOUNT_DESTINO/"
         else
             RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $MOUNT_DESTINO/"
         fi
-    elif [ "$ORIGEM" = "local" ]; then
+    elif [ "$ORIGEM" = "localhost" ]; then
         if $USE_SUDO; then
             RSYNC_CMD="sudo rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/"
         else
             RSYNC_CMD="rsync $RSYNC_OPTS $MOUNT_ORIGEM/ $DESTINO:$MOUNT_DESTINO/"
         fi
-    elif [ "$DESTINO" = "local" ]; then
+    elif [ "$DESTINO" = "localhost" ]; then
         if $USE_SUDO; then
             RSYNC_CMD="sudo rsync $RSYNC_OPTS $ORIGEM:$MOUNT_ORIGEM/ $MOUNT_DESTINO/"
         else
@@ -345,17 +384,8 @@ sync_volume() {
     fi
     
     echo ""
-    if [ "$ORIGEM" = "local" ]; then
-        echo -e "${BLUE}Origem:${NC}  local:$MOUNT_ORIGEM"
-    else
-        echo -e "${BLUE}Origem:${NC}  $ORIGEM:$MOUNT_ORIGEM"
-    fi
-    
-    if [ "$DESTINO" = "local" ]; then
-        echo -e "${BLUE}Destino:${NC} local:$MOUNT_DESTINO"
-    else
-        echo -e "${BLUE}Destino:${NC} $DESTINO:$MOUNT_DESTINO"
-    fi
+    echo -e "${BLUE}Origem:${NC}  $ORIGEM:$MOUNT_ORIGEM"
+    echo -e "${BLUE}Destino:${NC} $DESTINO:$MOUNT_DESTINO"
     echo ""
     
     if $DEBUG_MODE; then
