@@ -144,8 +144,10 @@ testar_conexao() {
         fi
     else
         echo -ne "${CYAN}  Testando SSH $papel ($servidor)...${NC} "
-        if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$servidor" exit 2>/dev/null; then
+        SSH_ERR=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$servidor" exit 2>&1)
+        if [ $? -ne 0 ]; then
             echo -e "${RED}✗ Falha na conexão SSH!${NC}"
+            echo -e "${RED}  $SSH_ERR${NC}"
             return 1
         fi
         echo -ne "${GREEN}✓ SSH OK${NC} | "
