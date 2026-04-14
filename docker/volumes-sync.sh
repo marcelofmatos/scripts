@@ -20,7 +20,7 @@
 #   DEBUG=true ORIGEM=usuario@azure DESTINO=localhost ./volumes-sync.sh
 #   VERBOSE=true DRY_RUN=false ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 
-set -e
+set -eo pipefail
 
 # Cores
 RED='\033[0;31m'
@@ -128,6 +128,42 @@ else
     fi
     SSH_DESTINO="ssh $DESTINO"
 fi
+
+# Função para testar conectividade com servidor
+testar_conexao() {
+    local servidor=$1
+    local papel=$2
+
+    if [ "$servidor" = "localhost" ]; then
+        if docker info &>/dev/null || sudo docker info &>/dev/null; then
+            echo -e "${GREEN}✓ $papel ($servidor): Docker acessível${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ $papel ($servidor): Docker não acessível${NC}"
+            return 1
+        fi
+    else
+        echo -ne "${CYAN}  Testando SSH $papel ($servidor)...${NC} "
+        if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$servidor" exit 2>/dev/null; then
+            echo -e "${RED}✗ Falha na conexão SSH!${NC}"
+            return 1
+        fi
+        echo -ne "${GREEN}✓ SSH OK${NC} | "
+        if ssh -o ConnectTimeout=5 "$servidor" "docker info" &>/dev/null || \
+           ssh -o ConnectTimeout=5 "$servidor" "sudo docker info" &>/dev/null; then
+            echo -e "${GREEN}Docker acessível${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ Docker não acessível${NC}"
+            return 1
+        fi
+    fi
+}
+
+echo ""
+echo -e "${CYAN}Testando conectividade...${NC}"
+testar_conexao "$ORIGEM" "Origem" || exit 1
+testar_conexao "$DESTINO" "Destino" || exit 1
 
 echo ""
 echo -e "${GREEN}✓ Origem:${NC} $ORIGEM"
@@ -421,18 +457,64 @@ sync_volume() {
     echo ""
 }
 
-# Processar cada volume selecionado
-for volume in "${VOLUMES_SELECIONADOS[@]}"; do
-    sync_volume "$volume"
+# Processar cada volume selecionado, sem parar no erro
+declare -A RESULTADO_VOLUMES
+TOTAL=${#VOLUMES_SELECIONADOS[@]}
+
+for i in "${!VOLUMES_SELECIONADOS[@]}"; do
+    volume="${VOLUMES_SELECIONADOS[$i]}"
+    echo -e "${CYAN}[$(( i + 1 ))/$TOTAL]${NC}"
+    if $DEBUG_MODE; then
+        sync_volume "$volume"
+        RESULTADO_VOLUMES[$volume]="debug"
+    else
+        set +e
+        sync_volume "$volume"
+        STATUS=$?
+        set -e
+        if [ $STATUS -eq 0 ]; then
+            RESULTADO_VOLUMES[$volume]="ok"
+        else
+            RESULTADO_VOLUMES[$volume]="erro"
+        fi
+    fi
 done
 
-# Resumo final
+# Resumo final por volume
 echo ""
 echo -e "${CYAN}======================================${NC}"
-echo -e "${GREEN}✓ Processo concluído!${NC}"
+echo -e "${CYAN}  Resumo por Volume${NC}"
 echo -e "${CYAN}======================================${NC}"
+printf "${BLUE}%-40s %-10s${NC}\n" "Volume" "Status"
+printf "${BLUE}%-40s %-10s${NC}\n" "----------------------------------------" "----------"
+
+SUCESSO=0
+ERROS=0
+for volume in "${VOLUMES_SELECIONADOS[@]}"; do
+    status="${RESULTADO_VOLUMES[$volume]}"
+    case "$status" in
+        ok)
+            if $DRY_RUN; then
+                printf "%-40s ${YELLOW}%-10s${NC}\n" "$volume" "dry-run"
+            else
+                printf "%-40s ${GREEN}%-10s${NC}\n" "$volume" "✓ ok"
+                (( SUCESSO++ )) || true
+            fi
+            ;;
+        erro)
+            printf "%-40s ${RED}%-10s${NC}\n" "$volume" "✗ erro"
+            (( ERROS++ )) || true
+            ;;
+        debug)
+            printf "%-40s ${CYAN}%-10s${NC}\n" "$volume" "debug"
+            ;;
+    esac
+done
+
 echo ""
-echo -e "Total de volumes processados: ${#VOLUMES_SELECIONADOS[@]}"
+if ! $DEBUG_MODE && ! $DRY_RUN; then
+    echo -e "Sucesso: ${GREEN}$SUCESSO${NC}  |  Erros: ${RED}$ERROS${NC}  |  Total: $TOTAL"
+fi
 if $DRY_RUN; then
     echo -e "${YELLOW}Use DRY_RUN=false para executar a sincronização real${NC}"
 fi
