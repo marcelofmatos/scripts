@@ -13,12 +13,14 @@
 #   VERBOSE     - Mostrar lista de arquivos (true/false, padrão: false)
 #   DEBUG       - Apenas mostrar comandos sem executar (true/false, padrão: false)
 #   USE_SUDO    - Usar sudo para acessar volumes (true/false, padrão: true)
+#   FILTRO      - Filtrar volumes que contenham o termo no nome (padrão: vazio = todos)
 #
 # Exemplos de uso:
 #   ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 #   DRY_RUN=false ORIGEM=localhost DESTINO=usuario@hetzner ./volumes-sync.sh
 #   DEBUG=true ORIGEM=usuario@azure DESTINO=localhost ./volumes-sync.sh
 #   VERBOSE=true DRY_RUN=false ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
+#   FILTRO=postgres ORIGEM=usuario@azure DESTINO=usuario@hetzner ./volumes-sync.sh
 
 set -eo pipefail
 
@@ -39,6 +41,7 @@ VERBOSE=${VERBOSE:-false}
 ORIGEM=${ORIGEM:-""}
 DESTINO=${DESTINO:-""}
 USE_SUDO=${USE_SUDO:-true}
+FILTRO=${FILTRO:-""}
 
 # Banner
 echo -e "${CYAN}======================================${NC}"
@@ -190,6 +193,23 @@ set -e
 if [ ${#VOLUMES_ORIGEM[@]} -eq 0 ]; then
     echo -e "${RED}✗ Nenhum volume encontrado na origem!${NC}"
     exit 1
+fi
+
+# Aplicar filtro se definido
+if [ -n "$FILTRO" ]; then
+    VOLUMES_FILTRADOS=()
+    for vol in "${VOLUMES_ORIGEM[@]}"; do
+        if [[ "$vol" == *"$FILTRO"* ]]; then
+            VOLUMES_FILTRADOS+=("$vol")
+        fi
+    done
+    VOLUMES_ORIGEM=("${VOLUMES_FILTRADOS[@]}")
+    echo -e "${YELLOW}⚠ Filtro aplicado:${NC} '$FILTRO' (${#VOLUMES_ORIGEM[@]} volume(s) correspondem)"
+
+    if [ ${#VOLUMES_ORIGEM[@]} -eq 0 ]; then
+        echo -e "${RED}✗ Nenhum volume corresponde ao filtro '$FILTRO'!${NC}"
+        exit 1
+    fi
 fi
 
 echo ""
